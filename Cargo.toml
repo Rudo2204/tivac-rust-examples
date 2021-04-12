@@ -1,9 +1,9 @@
 [package]
 authors = [
-	"Michael Daffin <michael@daffin.io>",
-	"Philipp Oppermann <dev@phil-opp.com>",
-	"Jonathan 'theJPster' Pallant <github@thejpster.org.uk>",
-	"Marc Brinkmann"
+    "Michael Daffin <michael@daffin.io>",
+    "Philipp Oppermann <dev@phil-opp.com>",
+    "Jonathan 'theJPster' Pallant <github@thejpster.org.uk>",
+    "Marc Brinkmann"
 ]
 keywords = ["arm", "bare-metal", "blink", "lm4f120", "launchpad"]
 license = "MIT"
@@ -16,16 +16,18 @@ categories = ["hardware-support"]
 homepage = "https://www.thejpster.org.uk"
 
 [profile.release]
+codegen-units = 1
 lto = true
 debug = true
-opt-level = "s"
+#opt-level = "s"
 
 [dependencies]
-cortex-m = "0.6"
-cortex-m-rt = "0.6"
+cast = { version = "=0.2.3", default-features = false }
+cortex-m = "0.7.2"
+cortex-m-rt = "0.6.13"
 volatile-register = "0.2"
-embedded-hal = "0.2"
-tm4c123x-hal = "0.10"
+embedded-hal = "0.2.4"
+tm4c123x-hal = "0.10.2"
 
 [badges]
 travis-ci = { repository = "thejpster/stellaris-launchpad", branch = "master" }
