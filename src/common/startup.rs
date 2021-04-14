@@ -6,6 +6,13 @@
 // Imports
 //
 // ****************************************************************************
+extern crate alloc;
+extern crate alloc_cortex_m;
+
+use self::alloc_cortex_m::CortexMHeap;
+
+#[global_allocator]
+static ALLOCATOR: CortexMHeap = CortexMHeap::empty();
 
 use cortex_m;
 use cortex_m_rt::{entry, exception, ExceptionFrame};
@@ -62,6 +69,9 @@ extern "Rust" {
 /// zeros the bss segment.
 #[entry]
 unsafe fn call_main() -> ! {
+    let start = cortex_m_rt::heap_start() as usize;
+    let size = 16384; // in bytes
+    ALLOCATOR.init(start, size);
     let board = board::Board::new();
     stellaris_main(board);
     loop {
