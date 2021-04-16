@@ -7,20 +7,22 @@ extern crate keypad;
 
 extern crate embedded_hal;
 extern crate hd44780_driver;
+extern crate numtoa;
 extern crate stellaris_launchpad;
 extern crate tm4c123x_hal;
 
 use core::alloc::Layout;
 use embedded_hal::blocking::delay::DelayMs;
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::digital::v2::{InputPin, OutputPin};
 use hd44780_driver::{Cursor, CursorBlink, Display, DisplayMode, HD44780};
+use numtoa::NumToA;
 use stellaris_launchpad::board;
 use tm4c123x_hal::gpio::GpioExt;
 
 use tm4c123x_hal::gpio::{
     gpioa::PA5, gpioa::PA6, gpioa::PA7, gpiob::PB0, gpiob::PB1, gpiob::PB4, gpioe::PE4, gpioe::PE5,
 };
-use tm4c123x_hal::gpio::{Input, OpenDrain, OpenDrainMode as ODM, Output, PullUp};
+use tm4c123x_hal::gpio::{Input, Output, PullUp, PushPull};
 
 keypad_struct! {
     struct MyKeypad {
@@ -31,10 +33,10 @@ keypad_struct! {
             PB0<Input<PullUp>>,
         ),
         columns: (
-            PB4<Output<OpenDrain<dyn ODM>>>,
-            PA5<Output<OpenDrain<dyn ODM>>>,
-            PA6<Output<OpenDrain<dyn ODM>>>,
-            PA7<Output<OpenDrain<dyn ODM>>>,
+            PB4<Output<PushPull>>,
+            PA5<Output<PushPull>>,
+            PA6<Output<PushPull>>,
+            PA7<Output<PushPull>>,
         ),
     }
 }
@@ -64,10 +66,15 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
     let r3 = pins_b.pb1.into_pull_up_input();
     let r4 = pins_b.pb0.into_pull_up_input();
 
-    let c1 = pins_b.pb4.into_open_drain_output();
-    let c2 = pins_a.pa5.into_open_drain_output();
-    let c3 = pins_a.pa6.into_open_drain_output();
-    let c4 = pins_a.pa7.into_open_drain_output();
+    let c1 = pins_b.pb4.into_push_pull_output();
+    let c2 = pins_a.pa5.into_push_pull_output();
+    let c3 = pins_a.pa6.into_push_pull_output();
+    let c4 = pins_a.pa7.into_push_pull_output();
+
+    let keypad = keypad_new!(MyKeypad {
+        rows: (r1, r2, r3, r4),
+        columns: (c1, c2, c3, c4),
+    });
 
     let mut lcd = HD44780::new_4bit(rs, en, b4, b5, b6, b7, &mut delay).unwrap();
     lcd.reset(&mut delay).unwrap();
@@ -83,19 +90,46 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
     )
     .unwrap();
 
-    lcd.write_str("2021-04", &mut delay).unwrap();
-    lcd.set_cursor_pos(40, &mut delay).unwrap();
-    lcd.write_str("KEYPAD", &mut delay).unwrap();
+    let keys = keypad.decompose();
+    let first_key = &keys[0][0];
+    if first_key.is_low().unwrap() {
+        lcd.write_str("ifkl 1", &mut delay).unwrap();
+    } else {
+        lcd.write_str("ifkl 0", &mut delay).unwrap();
+    }
+    delay.delay_ms(2000u32);
+
+    let mut buffer = [0u8; 10];
 
     loop {
-        board.led_green.set_high().unwrap();
-        delay.delay_ms(500u32);
-        board.led_green.set_low().unwrap();
-        board.led_blue.set_high().unwrap();
-        delay.delay_ms(500u32);
-        board.led_blue.set_low().unwrap();
-        delay.delay_ms(500u32);
+        for (row_index, row) in keys.iter().enumerate() {
+            for (col_index, key) in row.iter().enumerate() {
+                if key.is_low().unwrap() {
+                    lcd.clear(&mut delay).unwrap();
+                    lcd.write_str("pd ", &mut delay).unwrap();
+                    lcd.write_str(row_index.numtoa_str(10, &mut buffer), &mut delay)
+                        .unwrap();
+                    lcd.write_str(" ", &mut delay).unwrap();
+                    lcd.write_str(col_index.numtoa_str(10, &mut buffer), &mut delay)
+                        .unwrap();
+                }
+            }
+        }
     }
+
+    //lcd.write_str("2021-04", &mut delay).unwrap();
+    //lcd.set_cursor_pos(40, &mut delay).unwrap();
+    //lcd.write_str("KEYPAD", &mut delay).unwrap();
+
+    //loop {
+    //    board.led_green.set_high().unwrap();
+    //    delay.delay_ms(500u32);
+    //    board.led_green.set_low().unwrap();
+    //    board.led_blue.set_high().unwrap();
+    //    delay.delay_ms(500u32);
+    //    board.led_blue.set_low().unwrap();
+    //    delay.delay_ms(500u32);
+    //}
 }
 
 #[alloc_error_handler]
