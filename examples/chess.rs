@@ -105,15 +105,21 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
 
     loop {
         lcd.clear(&mut delay).unwrap();
+        lcd.write_str("Player: ", &mut delay).unwrap();
+
         let from_file = get_chess_file(&keypad);
-        lcd_write_file(from_file, &mut lcd, &mut delay);
+        let from_file_str = conv_file(from_file);
+        lcd.write_str(from_file_str, &mut delay).unwrap();
         let from_rank = get_chess_rank(&keypad);
-        lcd_write_rank(from_rank, &mut lcd, &mut delay);
+        let from_rank_str = conv_rank(from_rank);
+        lcd.write_str(from_rank_str, &mut delay).unwrap();
 
         let to_file = get_chess_file(&keypad);
-        lcd_write_file(to_file, &mut lcd, &mut delay);
+        let to_file_str = conv_file(to_file);
+        lcd.write_str(to_file_str, &mut delay).unwrap();
         let to_rank = get_chess_rank(&keypad);
-        lcd_write_rank(to_rank, &mut lcd, &mut delay);
+        let to_rank_str = conv_rank(to_rank);
+        lcd.write_str(to_rank_str, &mut delay).unwrap();
 
         let _castle_notation =
             check_notation(from_file, from_rank, to_file, to_rank, &mut lcd, &mut delay);
@@ -139,62 +145,32 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
     //}
 }
 
-fn lcd_write_file(
-    file: u8,
-    lcd: &mut HD44780<
-        hd44780_driver::bus::FourBitBus<
-            PA2<Output<PushPull>>,
-            PD6<Output<PushPull>>,
-            PC7<Output<PushPull>>,
-            PC6<Output<PushPull>>,
-            PC5<Output<PushPull>>,
-            PC4<Output<PushPull>>,
-        >,
-    >,
-    delay: &mut tm4c123x_hal::delay::Delay,
-) {
-    match file {
-        0 => lcd.write_char('a', delay).unwrap(),
-        1 => lcd.write_char('b', delay).unwrap(),
-        2 => lcd.write_char('c', delay).unwrap(),
-        3 => lcd.write_char('d', delay).unwrap(),
-        4 => lcd.write_char('e', delay).unwrap(),
-        5 => lcd.write_char('f', delay).unwrap(),
-        6 => lcd.write_char('g', delay).unwrap(),
-        7 => lcd.write_char('h', delay).unwrap(),
-        _ => {
-            lcd.write_str("Unreachable", delay).unwrap();
-        }
-    }
+fn conv_file<'a>(file: u8) -> &'a str {
+    return match file {
+        0 => "a",
+        1 => "b",
+        2 => "c",
+        3 => "d",
+        4 => "e",
+        5 => "f",
+        6 => "g",
+        7 => "h",
+        _ => "u",
+    };
 }
 
-fn lcd_write_rank(
-    rank: u8,
-    lcd: &mut HD44780<
-        hd44780_driver::bus::FourBitBus<
-            PA2<Output<PushPull>>,
-            PD6<Output<PushPull>>,
-            PC7<Output<PushPull>>,
-            PC6<Output<PushPull>>,
-            PC5<Output<PushPull>>,
-            PC4<Output<PushPull>>,
-        >,
-    >,
-    delay: &mut tm4c123x_hal::delay::Delay,
-) {
-    match rank {
-        0 => lcd.write_char('1', delay).unwrap(),
-        1 => lcd.write_char('2', delay).unwrap(),
-        2 => lcd.write_char('3', delay).unwrap(),
-        3 => lcd.write_char('4', delay).unwrap(),
-        4 => lcd.write_char('5', delay).unwrap(),
-        5 => lcd.write_char('6', delay).unwrap(),
-        6 => lcd.write_char('7', delay).unwrap(),
-        7 => lcd.write_char('8', delay).unwrap(),
-        _ => {
-            lcd.write_str("Unreachable", delay).unwrap();
-        }
-    }
+fn conv_rank<'a>(file: u8) -> &'a str {
+    return match file {
+        0 => "1",
+        1 => "2",
+        2 => "3",
+        3 => "4",
+        4 => "5",
+        5 => "6",
+        6 => "7",
+        7 => "8",
+        _ => "u",
+    };
 }
 
 fn check_notation(
@@ -217,12 +193,12 @@ fn check_notation(
     match (from_file, from_rank, to_file, to_rank) {
         (0, 0, 0, 0) => {
             lcd.clear(delay).unwrap();
-            lcd.write_str("O-O", delay).unwrap();
+            lcd.write_str("Player: O-O", delay).unwrap();
             return true;
         }
         (1, 1, 1, 1) => {
             lcd.clear(delay).unwrap();
-            lcd.write_str("O-O-O", delay).unwrap();
+            lcd.write_str("Player: O-O-O", delay).unwrap();
             return true;
         }
         _ => return false,
