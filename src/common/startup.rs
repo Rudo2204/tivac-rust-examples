@@ -70,7 +70,7 @@ extern "Rust" {
 #[entry]
 unsafe fn call_main() -> ! {
     let start = cortex_m_rt::heap_start() as usize;
-    let size = 16384; // in bytes
+    let size = 24576; // in bytes
     ALLOCATOR.init(start, size);
     let board = board::Board::new();
     stellaris_main(board);
