@@ -14,11 +14,11 @@ extern crate numtoa;
 extern crate stellaris_launchpad;
 extern crate tm4c123x_hal;
 
+use alloc::string::ToString;
 use arrayvec::ArrayString;
 use chess_engine::*;
 use core::alloc::Layout;
-//use embedded_hal::blocking::delay::DelayMs;
-use alloc::string::ToString;
+use embedded_hal::blocking::delay::DelayMs;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
 use hd44780_driver::{Cursor, CursorBlink, Display, DisplayMode, HD44780};
 use numtoa::NumToA;
@@ -139,23 +139,53 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
         .build();
 
     let mut buffer = [0u8; BUFFER_SIZE];
+    let mut is_player_turn: bool = true;
     lcd.set_cursor_pos(40, &mut delay).unwrap();
     lcd.write_str("Player's turn!", &mut delay).unwrap();
 
     loop {
-        lcd.set_cursor_pos(0, &mut delay).unwrap();
-        lcd.write_str("                    ", &mut delay).unwrap();
-        lcd.set_cursor_pos(0, &mut delay).unwrap();
-        lcd.write_str("Player: ", &mut delay).unwrap();
+        let chess_move: Move = if is_player_turn {
+            player_turn(&keypad, &mut lcd, &mut delay)
+        } else {
+            lcd.set_cursor_pos(40, &mut delay).unwrap();
+            lcd.write_str("                    ", &mut delay).unwrap();
+            lcd.set_cursor_pos(40, &mut delay).unwrap();
+            lcd.write_str("Evaluating...", &mut delay).unwrap();
+            board.led_blue.set_high().unwrap();
+            let (cpu_move, count, _) = chess_board.get_best_next_move(2); // SLOW!
+            board.led_blue.set_low().unwrap();
 
-        // get player's turn
-        let notation: &str = &player_turn(&keypad, &mut lcd, &mut delay);
-        // attempt to play the notation, may panic?
-        let player_move: Move = Move::parse(notation.to_string()).unwrap();
+            lcd.set_cursor_pos(40, &mut delay).unwrap();
+            lcd.write_str("                    ", &mut delay).unwrap();
+            lcd.set_cursor_pos(40, &mut delay).unwrap();
+            lcd.write_str("CPU: ", &mut delay).unwrap();
 
-        match chess_board.play_move(player_move) {
+            match cpu_move {
+                Move::Piece(from_pos, to_pos) => {
+                    lcd.write_str(conv_file(from_pos.get_col()), &mut delay)
+                        .unwrap();
+                    lcd.write_str(conv_rank(from_pos.get_row()), &mut delay)
+                        .unwrap();
+                    lcd.write_str(conv_file(to_pos.get_col()), &mut delay)
+                        .unwrap();
+                    lcd.write_str(conv_rank(to_pos.get_row()), &mut delay)
+                        .unwrap();
+                }
+                Move::KingSideCastle => lcd.write_str("O-O", &mut delay).unwrap(),
+                Move::QueenSideCastle => lcd.write_str("O-O-O", &mut delay).unwrap(),
+                Move::Resign => lcd.write_str("resigns", &mut delay).unwrap(),
+            }
+
+            lcd.write_char(' ', &mut delay).unwrap();
+            lcd.write_str(count.numtoa_str(10, &mut buffer), &mut delay)
+                .unwrap();
+            cpu_move
+        };
+
+        match chess_board.play_move(chess_move) {
             GameResult::Continuing(next_board) => {
                 chess_board = next_board;
+                is_player_turn = !is_player_turn;
             }
             GameResult::Victory(color) => {
                 lcd.clear(&mut delay).unwrap();
@@ -165,6 +195,7 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
                 };
                 lcd.write_str(winner, &mut delay).unwrap();
                 lcd.write_str(" wins.", &mut delay).unwrap();
+                break;
             }
             GameResult::IllegalMove(_e) => {
                 lcd.set_cursor_pos(40, &mut delay).unwrap();
@@ -176,35 +207,20 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
             GameResult::Stalemate => {
                 lcd.clear(&mut delay).unwrap();
                 lcd.write_str("Stalemated", &mut delay).unwrap();
+                break;
             }
         }
-
-        lcd.set_cursor_pos(40, &mut delay).unwrap();
-        lcd.write_str("                    ", &mut delay).unwrap();
-        lcd.set_cursor_pos(40, &mut delay).unwrap();
-        lcd.write_str("Evaluating...", &mut delay).unwrap();
-        board.led_blue.set_high().unwrap();
-        let (_cpu_move, count, _) = chess_board.get_best_next_move(2); // SLOW!
-        board.led_blue.set_low().unwrap();
-
-        lcd.set_cursor_pos(40, &mut delay).unwrap();
-        lcd.write_str("                    ", &mut delay).unwrap();
-        lcd.set_cursor_pos(40, &mut delay).unwrap();
-        lcd.write_str("CPU: ", &mut delay).unwrap();
-        lcd.write_str(count.numtoa_str(10, &mut buffer), &mut delay)
-            .unwrap();
-        lcd.write_str("s evald", &mut delay).unwrap();
     }
 
-    //loop {
-    //    board.led_green.set_high().unwrap();
-    //    delay.delay_ms(500u32);
-    //    board.led_green.set_low().unwrap();
-    //    board.led_blue.set_high().unwrap();
-    //    delay.delay_ms(500u32);
-    //    board.led_blue.set_low().unwrap();
-    //    delay.delay_ms(500u32);
-    //}
+    loop {
+        board.led_green.set_high().unwrap();
+        delay.delay_ms(500u32);
+        board.led_green.set_low().unwrap();
+        board.led_blue.set_high().unwrap();
+        delay.delay_ms(500u32);
+        board.led_blue.set_low().unwrap();
+        delay.delay_ms(500u32);
+    }
 }
 
 fn player_turn<'a>(
@@ -220,7 +236,12 @@ fn player_turn<'a>(
         >,
     >,
     delay: &mut tm4c123x_hal::delay::Delay,
-) -> ArrayString<BUFFER_SIZE> {
+) -> Move {
+    lcd.set_cursor_pos(0, delay).unwrap();
+    lcd.write_str("                    ", delay).unwrap();
+    lcd.set_cursor_pos(0, delay).unwrap();
+    lcd.write_str("Player: ", delay).unwrap();
+
     let from_file = get_chess_file(keypad);
     let from_file_str = conv_file(from_file);
     lcd.write_str(from_file_str, delay).unwrap();
@@ -246,17 +267,19 @@ fn player_turn<'a>(
         to_rank_str,
     );
 
-    notation
+    // attempt to parse the notation, may panic
+    let player_move: Move = Move::parse(notation.to_string()).unwrap();
+    player_move
 }
 
 fn get_notation(
-    from_file: u8,
+    from_file: i32,
     from_file_str: &str,
-    from_rank: u8,
+    from_rank: i32,
     from_rank_str: &str,
-    to_file: u8,
+    to_file: i32,
     to_file_str: &str,
-    to_rank: u8,
+    to_rank: i32,
     to_rank_str: &str,
 ) -> ArrayString<BUFFER_SIZE> {
     let mut ret_string = ArrayString::<BUFFER_SIZE>::new();
@@ -273,7 +296,7 @@ fn get_notation(
     ret_string
 }
 
-fn conv_file<'a>(file: u8) -> &'a str {
+fn conv_file<'a>(file: i32) -> &'a str {
     return match file {
         0 => "a",
         1 => "b",
@@ -287,7 +310,7 @@ fn conv_file<'a>(file: u8) -> &'a str {
     };
 }
 
-fn conv_rank<'a>(file: u8) -> &'a str {
+fn conv_rank<'a>(file: i32) -> &'a str {
     return match file {
         0 => "1",
         1 => "2",
@@ -301,7 +324,7 @@ fn conv_rank<'a>(file: u8) -> &'a str {
     };
 }
 
-fn get_chess_file(keypad: &MyKeypad) -> u8 {
+fn get_chess_file(keypad: &MyKeypad) -> i32 {
     // row column - file - ret
     // 33 a 0; 32 b 1; 31 c 2; 30 d 3
     // 23 e 4; 22 f 5; 21 g 6; 20 h 7
@@ -327,7 +350,7 @@ fn get_chess_file(keypad: &MyKeypad) -> u8 {
     }
 }
 
-fn get_chess_rank(keypad: &MyKeypad) -> u8 {
+fn get_chess_rank(keypad: &MyKeypad) -> i32 {
     // row column - rank - ret
     // 13 1 0; 12 2 1; 11 3 2; 10 4 3
     // 03 5 4; 02 6 5; 01 7 6; 00 8 7
