@@ -5,12 +5,14 @@
 #[macro_use]
 extern crate keypad;
 
+extern crate arrayvec;
 extern crate embedded_hal;
 extern crate hd44780_driver;
 //extern crate numtoa;
 extern crate stellaris_launchpad;
 extern crate tm4c123x_hal;
 
+use arrayvec::ArrayString;
 use core::alloc::Layout;
 use embedded_hal::blocking::delay::DelayMs;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
@@ -27,6 +29,8 @@ use tm4c123x_hal::gpio::{
     gpioe::{PE4, PE5},
 };
 use tm4c123x_hal::gpio::{Input, Output, PullUp, PushPull};
+
+const BUFFER_SIZE: usize = 10;
 
 keypad_struct! {
     struct MyKeypad {
@@ -103,36 +107,29 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
     //}
     //delay.delay_ms(1000u32);
 
+
+    //let mut buffer = [0u8; BUFFER_SIZE];
+    let mut lcd_clear: bool = false;
+    lcd.set_cursor_pos(40, &mut delay).unwrap();
+    lcd.write_str("Player's turn", &mut delay).unwrap();
+
     loop {
-        lcd.clear(&mut delay).unwrap();
+        if lcd_clear {
+            lcd.clear(&mut delay).unwrap();
+        } else {
+            lcd.set_cursor_pos(0, &mut delay).unwrap();
+            lcd.write_str("                    ", &mut delay).unwrap();
+            lcd.set_cursor_pos(0, &mut delay).unwrap();
+        }
         lcd.write_str("Player: ", &mut delay).unwrap();
+        let notation: &str = &player_turn(&keypad, &mut lcd, &mut delay);
 
-        let from_file = get_chess_file(&keypad);
-        let from_file_str = conv_file(from_file);
-        lcd.write_str(from_file_str, &mut delay).unwrap();
-        let from_rank = get_chess_rank(&keypad);
-        let from_rank_str = conv_rank(from_rank);
-        lcd.write_str(from_rank_str, &mut delay).unwrap();
-
-        let to_file = get_chess_file(&keypad);
-        let to_file_str = conv_file(to_file);
-        lcd.write_str(to_file_str, &mut delay).unwrap();
-        let to_rank = get_chess_rank(&keypad);
-        let to_rank_str = conv_rank(to_rank);
-        lcd.write_str(to_rank_str, &mut delay).unwrap();
-
-        let _castle_notation =
-            check_notation(from_file, from_rank, to_file, to_rank, &mut lcd, &mut delay);
         lcd.set_cursor_pos(40, &mut delay).unwrap();
         lcd.write_str("Done cycle", &mut delay).unwrap();
         board.led_blue.set_high().unwrap();
         delay.delay_ms(500u32);
         board.led_blue.set_low().unwrap();
     }
-
-    //lcd.write_str("2021-04", &mut delay).unwrap();
-    //lcd.set_cursor_pos(40, &mut delay).unwrap();
-    //lcd.write_str("KEYPAD", &mut delay).unwrap();
 
     //loop {
     //    board.led_green.set_high().unwrap();
@@ -143,6 +140,72 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
     //    board.led_blue.set_low().unwrap();
     //    delay.delay_ms(500u32);
     //}
+}
+
+fn player_turn<'a>(
+    keypad: &MyKeypad,
+    lcd: &mut HD44780<
+        hd44780_driver::bus::FourBitBus<
+            PA2<Output<PushPull>>,
+            PD6<Output<PushPull>>,
+            PC7<Output<PushPull>>,
+            PC6<Output<PushPull>>,
+            PC5<Output<PushPull>>,
+            PC4<Output<PushPull>>,
+        >,
+    >,
+    delay: &mut tm4c123x_hal::delay::Delay,
+) -> ArrayString<BUFFER_SIZE> {
+    let from_file = get_chess_file(keypad);
+    let from_file_str = conv_file(from_file);
+    lcd.write_str(from_file_str, delay).unwrap();
+    let from_rank = get_chess_rank(keypad);
+    let from_rank_str = conv_rank(from_rank);
+    lcd.write_str(from_rank_str, delay).unwrap();
+
+    let to_file = get_chess_file(keypad);
+    let to_file_str = conv_file(to_file);
+    lcd.write_str(to_file_str, delay).unwrap();
+    let to_rank = get_chess_rank(keypad);
+    let to_rank_str = conv_rank(to_rank);
+    lcd.write_str(to_rank_str, delay).unwrap();
+
+    let notation = get_notation(
+        from_file,
+        from_file_str,
+        from_rank,
+        from_rank_str,
+        to_file,
+        to_file_str,
+        to_rank,
+        to_rank_str,
+    );
+
+    notation
+}
+
+fn get_notation(
+    from_file: u8,
+    from_file_str: &str,
+    from_rank: u8,
+    from_rank_str: &str,
+    to_file: u8,
+    to_file_str: &str,
+    to_rank: u8,
+    to_rank_str: &str,
+) -> ArrayString<BUFFER_SIZE> {
+    let mut ret_string = ArrayString::<BUFFER_SIZE>::new();
+    match (from_file, from_rank, to_file, to_rank) {
+        (0, 0, 0, 0) => ret_string.push_str("O-O"),
+        (1, 1, 1, 1) => ret_string.push_str("O-O-O"),
+        _ => {
+            ret_string.push_str(from_file_str);
+            ret_string.push_str(from_rank_str);
+            ret_string.push_str(to_file_str);
+            ret_string.push_str(to_rank_str);
+        }
+    }
+    ret_string
 }
 
 fn conv_file<'a>(file: u8) -> &'a str {
@@ -171,38 +234,6 @@ fn conv_rank<'a>(file: u8) -> &'a str {
         7 => "8",
         _ => "u",
     };
-}
-
-fn check_notation(
-    from_file: u8,
-    from_rank: u8,
-    to_file: u8,
-    to_rank: u8,
-    lcd: &mut HD44780<
-        hd44780_driver::bus::FourBitBus<
-            PA2<Output<PushPull>>,
-            PD6<Output<PushPull>>,
-            PC7<Output<PushPull>>,
-            PC6<Output<PushPull>>,
-            PC5<Output<PushPull>>,
-            PC4<Output<PushPull>>,
-        >,
-    >,
-    delay: &mut tm4c123x_hal::delay::Delay,
-) -> bool {
-    match (from_file, from_rank, to_file, to_rank) {
-        (0, 0, 0, 0) => {
-            lcd.clear(delay).unwrap();
-            lcd.write_str("Player: O-O", delay).unwrap();
-            return true;
-        }
-        (1, 1, 1, 1) => {
-            lcd.clear(delay).unwrap();
-            lcd.write_str("Player: O-O-O", delay).unwrap();
-            return true;
-        }
-        _ => return false,
-    }
 }
 
 fn get_chess_file(keypad: &MyKeypad) -> u8 {
