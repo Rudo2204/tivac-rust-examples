@@ -31,6 +31,7 @@ tm4c123x-hal = "0.10.2"
 alloc-cortex-m = "0.4.1"
 numtoa = "0.2.3"
 hd44780-driver = "0.4.0"
+chess-engine = { path = "../chess-engine/" }
 keypad = "0.1.4"
 
 [badges]
