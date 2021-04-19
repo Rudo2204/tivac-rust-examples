@@ -31,7 +31,7 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
     let pins_c = board.GPIO_PORTC.split(&board.power_control);
     let pins_d = board.GPIO_PORTD.split(&board.power_control);
 
-    let rs = pins_a.pa4.into_push_pull_output();
+    let rs = pins_a.pa2.into_push_pull_output();
     let en = pins_d.pd6.into_push_pull_output();
     let b4 = pins_c.pc7.into_push_pull_output();
     let b5 = pins_c.pc6.into_push_pull_output();
