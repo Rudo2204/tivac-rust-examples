@@ -5,19 +5,23 @@
 #[macro_use]
 extern crate keypad;
 
+extern crate alloc;
 extern crate arrayvec;
+extern crate chess_engine;
 extern crate embedded_hal;
 extern crate hd44780_driver;
-//extern crate numtoa;
+extern crate numtoa;
 extern crate stellaris_launchpad;
 extern crate tm4c123x_hal;
 
 use arrayvec::ArrayString;
+use chess_engine::*;
 use core::alloc::Layout;
-use embedded_hal::blocking::delay::DelayMs;
+//use embedded_hal::blocking::delay::DelayMs;
+use alloc::string::ToString;
 use embedded_hal::digital::v2::{InputPin, OutputPin};
 use hd44780_driver::{Cursor, CursorBlink, Display, DisplayMode, HD44780};
-//use numtoa::NumToA;
+use numtoa::NumToA;
 use stellaris_launchpad::board;
 use tm4c123x_hal::gpio::GpioExt;
 
@@ -107,28 +111,89 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
     //}
     //delay.delay_ms(1000u32);
 
+    let mut chess_board = BoardBuilder::default()
+        .piece(Piece::Pawn(WHITE, A2))
+        .piece(Piece::Pawn(WHITE, B2))
+        .piece(Piece::Pawn(WHITE, C2))
+        .piece(Piece::Pawn(WHITE, F2))
+        .piece(Piece::Pawn(WHITE, G2))
+        .piece(Piece::Pawn(WHITE, H2))
+        .piece(Piece::Pawn(BLACK, B6))
+        .piece(Piece::Pawn(BLACK, A7))
+        .piece(Piece::Pawn(BLACK, C7))
+        .piece(Piece::Pawn(BLACK, F7))
+        .piece(Piece::Pawn(BLACK, G7))
+        .piece(Piece::Pawn(BLACK, H7))
+        .piece(Piece::Knight(WHITE, D5))
+        .piece(Piece::Knight(BLACK, G8))
+        .piece(Piece::Bishop(WHITE, E3))
+        .piece(Piece::Bishop(BLACK, D6))
+        .piece(Piece::Rook(WHITE, A1))
+        .piece(Piece::Rook(WHITE, E1))
+        .piece(Piece::Rook(BLACK, D8))
+        .piece(Piece::Rook(BLACK, H8))
+        .piece(Piece::Queen(WHITE, C4))
+        .piece(Piece::Queen(BLACK, G6))
+        .piece(Piece::King(WHITE, G1))
+        .piece(Piece::King(BLACK, C8))
+        .build();
 
-    //let mut buffer = [0u8; BUFFER_SIZE];
-    let mut lcd_clear: bool = false;
+    let mut buffer = [0u8; BUFFER_SIZE];
     lcd.set_cursor_pos(40, &mut delay).unwrap();
-    lcd.write_str("Player's turn", &mut delay).unwrap();
+    lcd.write_str("Player's turn!", &mut delay).unwrap();
 
     loop {
-        if lcd_clear {
-            lcd.clear(&mut delay).unwrap();
-        } else {
-            lcd.set_cursor_pos(0, &mut delay).unwrap();
-            lcd.write_str("                    ", &mut delay).unwrap();
-            lcd.set_cursor_pos(0, &mut delay).unwrap();
-        }
+        lcd.set_cursor_pos(0, &mut delay).unwrap();
+        lcd.write_str("                    ", &mut delay).unwrap();
+        lcd.set_cursor_pos(0, &mut delay).unwrap();
         lcd.write_str("Player: ", &mut delay).unwrap();
+
+        // get player's turn
         let notation: &str = &player_turn(&keypad, &mut lcd, &mut delay);
+        // attempt to play the notation, may panic?
+        let player_move: Move = Move::parse(notation.to_string()).unwrap();
+
+        match chess_board.play_move(player_move) {
+            GameResult::Continuing(next_board) => {
+                chess_board = next_board;
+            }
+            GameResult::Victory(color) => {
+                lcd.clear(&mut delay).unwrap();
+                let winner: &str = match color {
+                    Color::White => "White",
+                    Color::Black => "Black",
+                };
+                lcd.write_str(winner, &mut delay).unwrap();
+                lcd.write_str(" wins.", &mut delay).unwrap();
+            }
+            GameResult::IllegalMove(_e) => {
+                lcd.set_cursor_pos(40, &mut delay).unwrap();
+                lcd.write_str("                    ", &mut delay).unwrap();
+                lcd.set_cursor_pos(40, &mut delay).unwrap();
+                lcd.write_str("Illegal move!", &mut delay).unwrap(); // shouldn't happen
+                continue;
+            }
+            GameResult::Stalemate => {
+                lcd.clear(&mut delay).unwrap();
+                lcd.write_str("Stalemated", &mut delay).unwrap();
+            }
+        }
 
         lcd.set_cursor_pos(40, &mut delay).unwrap();
-        lcd.write_str("Done cycle", &mut delay).unwrap();
+        lcd.write_str("                    ", &mut delay).unwrap();
+        lcd.set_cursor_pos(40, &mut delay).unwrap();
+        lcd.write_str("Evaluating...", &mut delay).unwrap();
         board.led_blue.set_high().unwrap();
-        delay.delay_ms(500u32);
+        let (_cpu_move, count, _) = chess_board.get_best_next_move(2); // SLOW!
         board.led_blue.set_low().unwrap();
+
+        lcd.set_cursor_pos(40, &mut delay).unwrap();
+        lcd.write_str("                    ", &mut delay).unwrap();
+        lcd.set_cursor_pos(40, &mut delay).unwrap();
+        lcd.write_str("CPU: ", &mut delay).unwrap();
+        lcd.write_str(count.numtoa_str(10, &mut buffer), &mut delay)
+            .unwrap();
+        lcd.write_str("s evald", &mut delay).unwrap();
     }
 
     //loop {
