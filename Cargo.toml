@@ -34,6 +34,7 @@ hd44780-driver = "0.4.0"
 chess-engine = { path = "../chess-engine/" }
 keypad = "0.1.4"
 arrayvec = { version = "0.7.0", default-features = false }
+mfrc522 = "0.2.0"
 
 [badges]
 travis-ci = { repository = "thejpster/stellaris-launchpad", branch = "master" }
