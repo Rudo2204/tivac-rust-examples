@@ -183,9 +183,13 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
         };
 
         match chess_board.play_move(chess_move) {
-            GameResult::Continuing(next_board) => {
-                chess_board = next_board;
-                is_player_turn = !is_player_turn;
+            GameResult::IllegalMove(_e) => {
+                lcd.set_cursor_pos(40, &mut delay).unwrap();
+                lcd.write_str("                    ", &mut delay).unwrap();
+                lcd.set_cursor_pos(40, &mut delay).unwrap();
+                // it may panic here if not handle correctly
+                lcd.write_str("Illegal move!", &mut delay).unwrap();
+                continue;
             }
             GameResult::Victory(color) => {
                 lcd.clear(&mut delay).unwrap();
@@ -197,17 +201,14 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
                 lcd.write_str(" wins.", &mut delay).unwrap();
                 break;
             }
-            GameResult::IllegalMove(_e) => {
-                lcd.set_cursor_pos(40, &mut delay).unwrap();
-                lcd.write_str("                    ", &mut delay).unwrap();
-                lcd.set_cursor_pos(40, &mut delay).unwrap();
-                lcd.write_str("Illegal move!", &mut delay).unwrap(); // shouldn't happen
-                continue;
-            }
             GameResult::Stalemate => {
                 lcd.clear(&mut delay).unwrap();
                 lcd.write_str("Stalemated", &mut delay).unwrap();
                 break;
+            }
+            GameResult::Continuing(next_board) => {
+                chess_board = next_board;
+                is_player_turn = !is_player_turn;
             }
         }
     }
