@@ -256,6 +256,24 @@ fn player_turn<'a>(
     let to_rank_str = conv_rank(to_rank);
     lcd.write_str(to_rank_str, delay).unwrap();
 
+    match (from_file, from_rank, to_file, to_rank) {
+        (0, 0, 0, 0) => {
+            lcd.set_cursor_pos(0, delay).unwrap();
+            lcd.write_str("                    ", delay).unwrap();
+            lcd.set_cursor_pos(0, delay).unwrap();
+            lcd.write_str("Player: ", delay).unwrap();
+            lcd.write_str("O-O", delay).unwrap();
+        }
+        (1, 1, 1, 1) => {
+            lcd.set_cursor_pos(0, delay).unwrap();
+            lcd.write_str("                    ", delay).unwrap();
+            lcd.set_cursor_pos(0, delay).unwrap();
+            lcd.write_str("Player: ", delay).unwrap();
+            lcd.write_str("O-O-O", delay).unwrap();
+        }
+        _ => {}
+    }
+
     let notation = get_notation(
         from_file,
         from_file_str,
