@@ -222,7 +222,7 @@ impl Board {
 
         sysctl.clock_setup.oscillator = Oscillator::Main(
             CrystalFrequency::_16mhz,
-            SystemClock::UsePll(PllOutputFrequency::_66_67mhz),
+            SystemClock::UsePll(PllOutputFrequency::_80_00mhz),
         );
         unsafe {
             CLOCKS = sysctl.clock_setup.freeze();
