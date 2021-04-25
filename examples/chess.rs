@@ -262,15 +262,13 @@ fn player_turn<'a>(
             lcd.set_cursor_pos(0, delay).unwrap();
             lcd.write_str("                    ", delay).unwrap();
             lcd.set_cursor_pos(0, delay).unwrap();
-            lcd.write_str("Player: ", delay).unwrap();
-            lcd.write_str("O-O", delay).unwrap();
+            lcd.write_str("Player: O-O", delay).unwrap();
         }
         (1, 1, 1, 1) => {
             lcd.set_cursor_pos(0, delay).unwrap();
             lcd.write_str("                    ", delay).unwrap();
             lcd.set_cursor_pos(0, delay).unwrap();
-            lcd.write_str("Player: ", delay).unwrap();
-            lcd.write_str("O-O-O", delay).unwrap();
+            lcd.write_str("Player: O-O-O", delay).unwrap();
         }
         _ => {}
     }
