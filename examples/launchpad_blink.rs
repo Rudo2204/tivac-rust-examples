@@ -3,6 +3,7 @@
 
 #![no_std]
 #![no_main]
+#![feature(alloc_error_handler)]
 
 // ****************************************************************************
 //
@@ -14,43 +15,16 @@ extern crate embedded_hal;
 extern crate stellaris_launchpad;
 extern crate tm4c123x_hal;
 
+use core::alloc::Layout;
 use core::fmt::Write;
 use embedded_hal::blocking::delay::DelayMs;
 use embedded_hal::serial::Read as ReadHal;
 use embedded_hal::Pwm;
+use stellaris_launchpad::board;
 use tm4c123x_hal::gpio::GpioExt;
 use tm4c123x_hal::serial;
 use tm4c123x_hal::time::Bps;
 
-// ****************************************************************************
-//
-// Public Types
-//
-// ****************************************************************************
-
-// None
-
-// ****************************************************************************
-//
-// Private Types
-//
-// ****************************************************************************
-
-// None
-
-// ****************************************************************************
-//
-// Public Data
-//
-// ****************************************************************************
-
-// None
-
-// ****************************************************************************
-//
-// Public Functions
-//
-// ****************************************************************************
 #[no_mangle]
 pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
     let mut pins_a = board.GPIO_PORTA.split(&board.power_control);
@@ -93,16 +67,7 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
     }
 }
 
-// ****************************************************************************
-//
-// Private Functions
-//
-// ****************************************************************************
-
-// None
-
-// ****************************************************************************
-//
-// End Of File
-//
-// ****************************************************************************
+#[alloc_error_handler]
+fn oom(_: Layout) -> ! {
+    board::panic();
+}

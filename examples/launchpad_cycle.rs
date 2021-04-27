@@ -1,56 +1,20 @@
-//! A rainbow-LED example application
-//! This example uses launchpad-rs.
-
 #![no_std]
 #![no_main]
-
-// ****************************************************************************
-//
-// Imports
-//
-// ****************************************************************************
+#![feature(alloc_error_handler)]
 
 extern crate embedded_hal;
 extern crate stellaris_launchpad;
 extern crate tm4c123x_hal;
 
+use core::alloc::Layout;
 use core::fmt::Write;
 use embedded_hal::blocking::delay::DelayMs;
 use embedded_hal::serial::Read;
 use embedded_hal::Pwm;
+use stellaris_launchpad::board;
 use tm4c123x_hal::gpio::GpioExt;
 use tm4c123x_hal::serial;
 use tm4c123x_hal::time::Bps;
-
-// ****************************************************************************
-//
-// Public Types
-//
-// ****************************************************************************
-
-// None
-
-// ****************************************************************************
-//
-// Private Types
-//
-// ****************************************************************************
-
-// None
-
-// ****************************************************************************
-//
-// Public Data
-//
-// ****************************************************************************
-
-// None
-
-// ****************************************************************************
-//
-// Public Functions
-//
-// ****************************************************************************
 
 #[no_mangle]
 fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
@@ -109,12 +73,6 @@ fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
     }
 }
 
-// ****************************************************************************
-//
-// Private Functions
-//
-// ****************************************************************************
-
 fn calculate_rgb(angle: u16) -> (u8, u8, u8) {
     let angle = angle % 360;
 
@@ -143,8 +101,7 @@ fn calculate_rgb(angle: u16) -> (u8, u8, u8) {
     ((r * 255.0) as u8, (g * 255.0) as u8, (b * 255.0) as u8)
 }
 
-// ****************************************************************************
-//
-// End Of File
-//
-// ****************************************************************************
+#[alloc_error_handler]
+fn oom(_: Layout) -> ! {
+    board::panic();
+}
