@@ -27,9 +27,9 @@ use tm4c123x_hal::gpio::{Input, Output, PullUp, PushPull};
 keypad_struct! {
     struct MyKeypad {
         rows: (
+            PE5<Input<PullUp>>,
             PE4<Input<PullUp>>,
             PB1<Input<PullUp>>,
-            PB0<Input<PullUp>>,
         ),
         columns: (
             PA5<Output<PushPull>>,
@@ -59,16 +59,16 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
     let b6 = pins_c.pc5.into_push_pull_output();
     let b7 = pins_c.pc4.into_push_pull_output();
 
+    let r1 = pins_e.pe5.into_pull_up_input();
     let r2 = pins_e.pe4.into_pull_up_input();
     let r3 = pins_b.pb1.into_pull_up_input();
-    let r4 = pins_b.pb0.into_pull_up_input();
 
     let c2 = pins_a.pa5.into_push_pull_output();
     let c3 = pins_a.pa6.into_push_pull_output();
     let c4 = pins_a.pa7.into_push_pull_output();
 
     let keypad = keypad_new!(MyKeypad {
-        rows: (r2, r3, r4),
+        rows: (r1, r2, r3),
         columns: (c2, c3, c4),
     });
 
