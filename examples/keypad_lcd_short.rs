@@ -13,15 +13,13 @@ extern crate tm4c123x_hal;
 
 use core::alloc::Layout;
 use embedded_hal::blocking::delay::DelayMs;
-use embedded_hal::digital::v2::{InputPin, OutputPin};
+use embedded_hal::digital::v2::InputPin;
 use hd44780_driver::{Cursor, CursorBlink, Display, DisplayMode, HD44780};
 use numtoa::NumToA;
 use stellaris_launchpad::board;
 use tm4c123x_hal::gpio::GpioExt;
 
-use tm4c123x_hal::gpio::{
-    gpioa::PA5, gpioa::PA6, gpioa::PA7, gpiob::PB0, gpiob::PB1, gpiob::PB4, gpioe::PE4, gpioe::PE5,
-};
+use tm4c123x_hal::gpio::{gpioa::PA5, gpioa::PA6, gpioa::PA7, gpiob::PB1, gpioe::PE4, gpioe::PE5};
 use tm4c123x_hal::gpio::{Input, Output, PullUp, PushPull};
 
 keypad_struct! {
@@ -40,7 +38,7 @@ keypad_struct! {
 }
 
 #[no_mangle]
-pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
+pub fn stellaris_main(board: stellaris_launchpad::board::Board) {
     let mut delay = tm4c123x_hal::delay::Delay::new(
         board.core_peripherals.SYST,
         stellaris_launchpad::board::clocks(),
