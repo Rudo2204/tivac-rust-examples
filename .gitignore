@@ -4,6 +4,7 @@
 *.o
 *.bk
 target
+binary
 Cargo.lock
 *.sublime-workspace
 
