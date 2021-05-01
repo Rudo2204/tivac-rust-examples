@@ -78,7 +78,7 @@ jobs:
         shell: bash
         run: |
             mkdir -p binary
-            for f in examples/*.rs; do tmp="${f#"examples/"}"; file="${tmp%%.rs}"; arm-none-eabi-objcopy -O binary "$CARGO_TARGET_DIR/thumbv7em-none-eabihf/release/examples/$file" "binary/$file"; done
+            for f in examples/*.rs; do tmp="${f#"examples/"}"; file="${tmp%%.rs}"; arm-none-eabi-objcopy -O binary "target/thumbv7em-none-eabihf/release/examples/$file" "binary/$file"; done
 
       - uses: actions/upload-artifact@v2
         with:
