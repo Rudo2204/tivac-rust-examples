@@ -22,7 +22,6 @@ debug = true
 #opt-level = "s"
 
 [dependencies]
-cast = { version = "=0.2.3", default-features = false }
 cortex-m = "0.7.2"
 cortex-m-rt = "0.6.13"
 volatile-register = "0.2"
@@ -31,7 +30,7 @@ tm4c123x-hal = "0.10.2"
 alloc-cortex-m = "0.4.1"
 numtoa = "0.2.3"
 hd44780-driver = "0.4.0"
-chess-engine = { path = "../chess-engine/" }
+chess-engine = { git = "https://github.com/adam-mcdaniel/chess-engine.git" }
 keypad = "0.1.4"
 arrayvec = { version = "0.7.0", default-features = false }
 mfrc522 = "0.2.0"
