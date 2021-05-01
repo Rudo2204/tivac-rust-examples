@@ -5,7 +5,7 @@
 # TODO: Set CRATE_NAME to match the project name
 name: CI
 env:
-  CRATE_NAME: tivac_examples
+  CRATE_NAME: tivac-rust-examples
 
 on: [push, pull_request]
 
