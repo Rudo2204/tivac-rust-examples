@@ -1,0 +1,14 @@
+[tasks.build]
+condition = { env_set = ["EXAMPLE"] }
+command = "cargo"
+args = ["build", "--release", "--example", "${EXAMPLE}"]
+
+[tasks.arm-none-eabi-objcopy]
+condition = { env_set = ["EXAMPLE"] }
+command = "arm-none-eabi-objcopy"
+args = ["-O", "binary", "${CARGO_TARGET_DIR}/thumbv7em-none-eabihf/release/examples/${EXAMPLE}", "binary/${EXAMPLE}.bin"]
+
+[tasks.flash]
+condition = { env_set = ["EXAMPLE"] }
+script = "sudo lm4flash binary/${EXAMPLE}.bin"
+dependencies = ["build", "arm-none-eabi-objcopy"]
