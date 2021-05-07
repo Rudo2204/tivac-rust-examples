@@ -14,8 +14,9 @@ extern crate numtoa;
 extern crate stellaris_launchpad;
 extern crate tm4c123x_hal;
 
+use alloc::format;
+use alloc::string::String;
 use alloc::string::ToString;
-use arrayvec::ArrayString;
 use chess_engine::*;
 use core::alloc::Layout;
 use embedded_hal::blocking::delay::DelayMs;
@@ -162,13 +163,13 @@ pub fn stellaris_main(mut board: stellaris_launchpad::board::Board) {
 
             match cpu_move {
                 Move::Piece(from_pos, to_pos) => {
-                    lcd.write_str(conv_file(from_pos.get_col()), &mut delay)
+                    lcd.write_char(conv_file(from_pos.get_col()), &mut delay)
                         .unwrap();
-                    lcd.write_str(conv_rank(from_pos.get_row()), &mut delay)
+                    lcd.write_char(conv_rank(from_pos.get_row()), &mut delay)
                         .unwrap();
-                    lcd.write_str(conv_file(to_pos.get_col()), &mut delay)
+                    lcd.write_char(conv_file(to_pos.get_col()), &mut delay)
                         .unwrap();
-                    lcd.write_str(conv_rank(to_pos.get_row()), &mut delay)
+                    lcd.write_char(conv_rank(to_pos.get_row()), &mut delay)
                         .unwrap();
                 }
                 Move::KingSideCastle => lcd.write_str("O-O", &mut delay).unwrap(),
@@ -245,17 +246,17 @@ fn player_turn<'a>(
 
     let from_file = get_chess_file(keypad);
     let from_file_str = conv_file(from_file);
-    lcd.write_str(from_file_str, delay).unwrap();
+    lcd.write_char(from_file_str, delay).unwrap();
     let from_rank = get_chess_rank(keypad);
     let from_rank_str = conv_rank(from_rank);
-    lcd.write_str(from_rank_str, delay).unwrap();
+    lcd.write_char(from_rank_str, delay).unwrap();
 
     let to_file = get_chess_file(keypad);
     let to_file_str = conv_file(to_file);
-    lcd.write_str(to_file_str, delay).unwrap();
+    lcd.write_char(to_file_str, delay).unwrap();
     let to_rank = get_chess_rank(keypad);
     let to_rank_str = conv_rank(to_rank);
-    lcd.write_str(to_rank_str, delay).unwrap();
+    lcd.write_char(to_rank_str, delay).unwrap();
 
     match (from_file, from_rank, to_file, to_rank) {
         (0, 0, 0, 0) => {
@@ -291,53 +292,52 @@ fn player_turn<'a>(
 
 fn get_notation(
     from_file: i32,
-    from_file_str: &str,
+    from_file_str: char,
     from_rank: i32,
-    from_rank_str: &str,
+    from_rank_str: char,
     to_file: i32,
-    to_file_str: &str,
+    to_file_str: char,
     to_rank: i32,
-    to_rank_str: &str,
-) -> ArrayString<BUFFER_SIZE> {
-    let mut ret_string = ArrayString::<BUFFER_SIZE>::new();
-    match (from_file, from_rank, to_file, to_rank) {
-        (0, 0, 0, 0) => ret_string.push_str("O-O"),
-        (1, 1, 1, 1) => ret_string.push_str("O-O-O"),
+    to_rank_str: char,
+) -> String {
+    let ret_string = match (from_file, from_rank, to_file, to_rank) {
+        (0, 0, 0, 0) => "O-O".to_string(),
+        (1, 1, 1, 1) => "O-O-O".to_string(),
         _ => {
-            ret_string.push_str(from_file_str);
-            ret_string.push_str(from_rank_str);
-            ret_string.push_str(to_file_str);
-            ret_string.push_str(to_rank_str);
+            format!(
+                "{}{}{}{}",
+                from_file_str, from_rank_str, to_file_str, to_rank_str
+            )
         }
-    }
+    };
     ret_string
 }
 
-fn conv_file<'a>(file: i32) -> &'a str {
+fn conv_file<'a>(file: i32) -> char {
     return match file {
-        0 => "a",
-        1 => "b",
-        2 => "c",
-        3 => "d",
-        4 => "e",
-        5 => "f",
-        6 => "g",
-        7 => "h",
-        _ => "u",
+        0 => 'a',
+        1 => 'b',
+        2 => 'c',
+        3 => 'd',
+        4 => 'e',
+        5 => 'f',
+        6 => 'g',
+        7 => 'h',
+        _ => 'u',
     };
 }
 
-fn conv_rank<'a>(file: i32) -> &'a str {
+fn conv_rank<'a>(file: i32) -> char {
     return match file {
-        0 => "1",
-        1 => "2",
-        2 => "3",
-        3 => "4",
-        4 => "5",
-        5 => "6",
-        6 => "7",
-        7 => "8",
-        _ => "u",
+        0 => '1',
+        1 => '2',
+        2 => '3',
+        3 => '4',
+        4 => '5',
+        5 => '6',
+        6 => '7',
+        7 => '8',
+        _ => 'u',
     };
 }
 
